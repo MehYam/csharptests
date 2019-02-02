@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace test
 {
@@ -27,8 +28,15 @@ namespace test
 
             IList<Foo<int>> sortaConstList = list.AsReadOnly();
 
-            // will throw
-            sortaConstList[1] = new Foo<int>(7, 8);
+            try
+            {
+                // will throw
+                sortaConstList[1] = new Foo<int>(7, 8);
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine($"thrown, as expected: {e}");
+            }
         }
     }
 }
