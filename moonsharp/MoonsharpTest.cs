@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using MoonSharp.Interpreter;
 
-
 namespace moonsharp
 {
     class MoonsharpTest
@@ -14,13 +13,74 @@ namespace moonsharp
             injectVariables();
             callFunctionDirectly();
             useGetInsteadOfIndexerAndCreateDynValuesDirectly();
-            luaCallingCSharp();
-            luaUsingIEnumerable();
-
+            callingBackIntoCSharp();
+            luaUsingCSharpIEnumerable();
+            accessingCSharpClass();
+            testLuaThrow();
             // for examples using lists and tables, http://www.moonsharp.org/callback.html
-
         }
-        static void luaUsingIEnumerable()
+        static void testLuaThrow()
+        {
+            string lua = @"
+                ur_nofun()
+            ";
+            try
+            {
+                DynValue val = Script.RunString(lua);
+                Console.WriteLine(val);
+            }
+            catch (ScriptRuntimeException e)
+            {
+                Console.WriteLine($"caught lua/moonsharp exception: {e.Message}");
+            }
+        }
+        class SomeGameClass
+        {
+            public int publicNum;
+            public string publicString;
+            public readonly string publicReadonlyString;
+            private readonly string privateReadonlyString;
+            public SomeGameClass(int num, string str)
+            {
+                publicNum = num;
+                publicString = str;
+                publicReadonlyString = $"{str} (readonly)";
+                privateReadonlyString = $"{str} (private)";
+            }
+            public string getPrivate() { return privateReadonlyString; }
+        }
+        static void accessingCSharpClass()
+        {
+            // create an object of a type Lua knows about
+            UserData.RegisterType<SomeGameClass>();
+            var someGameObject = new SomeGameClass(2112, "we have assumed control");
+
+            // create an execution context with a C# callback
+            var script = new Script();
+            Action<string> report = s => { Console.WriteLine($"lua: {s}"); };
+            script.Globals["report"] = report;
+
+            // run the script
+            string code =
+            @"
+            function doThings(someGameObject)
+                report(someGameObject.publicNum + 1)
+                report(someGameObject.publicString .. "" member accessed from lua "")
+                report(someGameObject.getPrivate() .. "" method called from lua "")
+
+                someGameObject.publicNum = 1221
+                report(""set publicNum to "" .. someGameObject.publicNum)
+
+                -- this throws, correctly
+                -- report(someGameObject.privateReadonlyString)
+
+                -- someGameObject.publicReadonlyString = ""this should throw""
+            end
+            ";
+            script.DoString(code);
+            script.Call(script.Globals["doThings"], UserData.Create(someGameObject));
+        }
+        static void luaUsingCSharpIEnumerable()
         {
             string lua = @"
                 total = 0
@@ -39,10 +99,11 @@ namespace moonsharp
             }
             var script = new Script();
             script.Globals["numberSequence"] = (Func<IEnumerable<int>>)numberSequence;
+
             var res = script.DoString(lua);
             Console.WriteLine(res);
         }
-        static void luaCallingCSharp()
+        static void callingBackIntoCSharp()
         {
             string lua = @"
                 function getAndAddNumbers()
