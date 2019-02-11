@@ -15,7 +15,7 @@ namespace moonsharp
             useGetInsteadOfIndexerAndCreateDynValuesDirectly();
             callingBackIntoCSharp();
             luaUsingCSharpIEnumerable();
-            accessingCSharpClass();
+            accessClassWithEnum();
             testLuaThrow();
             // for examples using lists and tables, http://www.moonsharp.org/callback.html
         }
@@ -31,54 +31,66 @@ namespace moonsharp
             }
             catch (ScriptRuntimeException e)
             {
-                Console.WriteLine($"caught lua/moonsharp exception: {e.Message}");
+                Console.WriteLine($"expected and caught lua/moonsharp exception: {e.Message}");
             }
         }
-        class SomeGameClass
+        class SomeClass
         {
+            public enum SomeEnum { First, Second };
             public int publicNum;
             public string publicString;
+            public SomeEnum someEnum;
             public readonly string publicReadonlyString;
             private readonly string privateReadonlyString;
-            public SomeGameClass(int num, string str)
+            public SomeClass(int num, string str)
             {
                 publicNum = num;
                 publicString = str;
+                someEnum = SomeEnum.First;
+
                 publicReadonlyString = $"{str} (readonly)";
                 privateReadonlyString = $"{str} (private)";
             }
             public string getPrivate() { return privateReadonlyString; }
         }
-        static void accessingCSharpClass()
+        static void accessClassWithEnum()
         {
             // create an object of a type Lua knows about
-            UserData.RegisterType<SomeGameClass>();
-            var someGameObject = new SomeGameClass(2112, "we have assumed control");
+            UserData.RegisterType<SomeClass>();
+            UserData.RegisterType<SomeClass.SomeEnum>();
+
+            var someInstance = new SomeClass(2112, "we have assumed control");
+            someInstance.someEnum = SomeClass.SomeEnum.First;
 
             // create an execution context with a C# callback
             var script = new Script();
             Action<string> report = s => { Console.WriteLine($"lua: {s}"); };
             script.Globals["report"] = report;
+            script.Globals["SomeEnum"] = UserData.CreateStatic<SomeClass.SomeEnum>();
 
             // run the script
             string code =
             @"
-            function doThings(someGameObject)
-                report(someGameObject.publicNum + 1)
-                report(someGameObject.publicString .. "" member accessed from lua "")
-                report(someGameObject.getPrivate() .. "" method called from lua "")
+            function doThings(someInstance)
+                report(someInstance.publicNum + 1)
+                report(someInstance.publicString .. "" member accessed from lua "")
+                report(someInstance.getPrivate() .. "" method called from lua "")
 
-                someGameObject.publicNum = 1221
-                report(""set publicNum to "" .. someGameObject.publicNum)
+                someInstance.publicNum = 1221
+                report(""set publicNum to "" .. someInstance.publicNum)
 
                 -- this throws, correctly
-                -- report(someGameObject.privateReadonlyString)
+                -- report(someInstance.privateReadonlyString)
 
-                -- someGameObject.publicReadonlyString = ""this should throw""
+                -- someInstance.publicReadonlyString = ""this should throw""
+                someInstance.someEnum = SomeEnum.Second
+                report(""testing C# enums:"")
+                report(SomeEnum.First)
+                report(someInstance.someEnum)
             end
             ";
             script.DoString(code);
-            script.Call(script.Globals["doThings"], UserData.Create(someGameObject));
+            script.Call(script.Globals["doThings"], UserData.Create(someInstance));
         }
         static void luaUsingCSharpIEnumerable()
         {
