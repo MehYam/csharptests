@@ -15,7 +15,7 @@ namespace moonsharp
             useGetInsteadOfIndexerAndCreateDynValuesDirectly();
             callingBackIntoCSharp();
             luaUsingCSharpIEnumerable();
-            accessClassWithEnum();
+            accessClass();
             testLuaThrow();
             // for examples using lists and tables, http://www.moonsharp.org/callback.html
         }
@@ -41,6 +41,7 @@ namespace moonsharp
             public string publicString;
             public SomeEnum someEnum;
             public readonly string publicReadonlyString;
+            public List<int> someList = new List<int> { 1, 2, 3 };
             private readonly string privateReadonlyString;
             public SomeClass(int num, string str)
             {
@@ -53,7 +54,7 @@ namespace moonsharp
             }
             public string getPrivate() { return privateReadonlyString; }
         }
-        static void accessClassWithEnum()
+        static void accessClass()
         {
             // create an object of a type Lua knows about
             UserData.RegisterType<SomeClass>();
@@ -87,6 +88,9 @@ namespace moonsharp
                 report(""testing C# enums:"")
                 report(SomeEnum.First)
                 report(someInstance.someEnum)
+
+                -- tests with List<>
+                report("" list count: "" .. someInstance.someList.Count)
             end
             ";
             script.DoString(code);
