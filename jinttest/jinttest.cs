@@ -11,6 +11,7 @@ namespace jinttest
             exceptions();
             classAccess();
             classAccessExceptions();
+            listOperations();
         }
         static void basics()
         {
@@ -98,6 +99,31 @@ namespace jinttest
             runJs("someObj.publicReadonlyString = 'foo'");
             runJs("callback(someObj.publicReadonlyString)");
             Console.WriteLine($"someObj.publicReadonlyString: {someObj.publicReadonlyString}");
+        }
+        static void listOperations()
+        {
+            var engine = new Jint.Engine();
+            var list = new List<SomeClass> { new SomeClass(20, "twenty"), new SomeClass(-20, "negative twenty"), new SomeClass(0, "zero") };
+
+            engine.SetValue("log", new Action<object>(Console.WriteLine));
+            engine.SetValue("rng", new kaiGameUtil.RNG(2111));
+            engine.SetValue("list", list);
+            engine.Execute(@"
+                log(typeof(list));
+                log(list[0].publicNum);
+
+                let count = list.Count;
+                let newArray = [];
+                for (let i = 0; i < count; ++i) {
+                    if (list[i].publicNum >= 0) {
+                        newArray.push(list[i]);
+                    }
+                }
+                log('filtered: ' + newArray.length);
+                function rngArray(a) { return a[ rng.Next(0, a.length - 1) ].publicNum; }
+
+                for (let i = 0; i < 20; ++i) log('more rng: ' + rng.Next(0, 3));
+            ");
         }
     }
 }
