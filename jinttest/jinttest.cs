@@ -63,8 +63,9 @@ namespace jinttest
                 callback(obj.publicString);
                 callback(obj.someEnum);
                 callback(obj.publicReadonlyString);
-                //callback(obj.someList);
-                //callback(obj.someList[0]);
+
+                obj.someList.Add(12345);
+                callback(obj.someList[obj.someList.Count - 1]);
             }
             ");
             
