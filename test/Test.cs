@@ -12,6 +12,7 @@ namespace test
             TestDefaultTypeValues();
             TestVerbatimStringLiteral();
             TestSwitchStuff();
+            TestInnerClass();
 
             Console.ReadKey(true);
         }
@@ -19,12 +20,14 @@ namespace test
         {
             Console.WriteLine("=-=-=-=-=-=-=-=-=");
         }
+#pragma warning disable CS0649
         class DefaultTypeValues
         {
             public float _float;
             public int _int;
             public string _string;
         }
+#pragma warning restore CS0649
         static void TestDefaultTypeValues()
         {
             var foo = new DefaultTypeValues();
@@ -48,6 +51,31 @@ namespace test
                     Console.WriteLine("wow this works");
                     break;
             }
+            Done();
+        }
+        class Outer
+        {
+            readonly int field;
+            readonly Inner inner;
+            public Outer(int outerField, int innerField) { this.field = outerField; this.inner = new Inner(this, innerField); }
+
+            class Inner
+            {
+                readonly int field;
+                readonly Outer parent;
+                public Inner(Outer parent, int field) {  this.field = field; this.parent = parent; }
+
+                public void TestCanAccessPrivateParentField()
+                {
+                    Console.WriteLine($"Inner instance {field} sees Outer's field: {parent.field}");
+                }
+            }
+            public void Test() {  inner.TestCanAccessPrivateParentField(); }
+        }
+        static void TestInnerClass()
+        {
+            var outer = new Outer(21, 12);
+            outer.Test();
             Done();
         }
     }

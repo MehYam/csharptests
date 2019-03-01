@@ -12,6 +12,7 @@ namespace jinttest
             exceptions();
             classAccess();
             classAccessExceptions();
+            enumAccess();
             listOperations();
         }
         static void basics()
@@ -127,21 +128,30 @@ namespace jinttest
             runJs("callback(someObj.publicReadonlyString)");
             Console.WriteLine($"someObj.publicReadonlyString: {someObj.publicReadonlyString}");
         }
+        static void enumAccess()
+        {
+            var engine = new Jint.Engine();
+            engine.SetValue("callback", new Action<string>(s => { Console.WriteLine($"callback from js: {s}"); } ));
+            engine.SetValue("SomeClass_First", SomeClass.SomeEnum.First);
+            engine.SetValue("SomeClass_Second", SomeClass.SomeEnum.Second);
+
+            var instance = new SomeClass(2, "foo");
+            engine.SetValue("instance", instance);
+
+            Console.WriteLine($"pre enum test: {instance.someEnum}");
+            engine.Execute("instance.someEnum = SomeClass_Second;");
+            Console.WriteLine($"post enum test: {instance.someEnum}");
+        }
         static void listOperations()
         {
             var engine = new Jint.Engine();
             var list = new List<SomeClass> { new SomeClass(20, "twenty"), new SomeClass(-20, "negative twenty"), new SomeClass(0, "zero") };
 
             IList<SomeClass> ilist = list;
-            var e = ilist.GetEnumerator();
-            while (e.MoveNext())
-            {
-                e.Current;
-            }
-
             engine.SetValue("log", new Action<object>(Console.WriteLine));
             engine.SetValue("rng", new kaiGameUtil.RNG(2111));
             engine.SetValue("list", list);
+            engine.SetValue("ilist", ilist);
             engine.Execute(@"
                 log('testing random list operations:');
                 log(typeof(list));
